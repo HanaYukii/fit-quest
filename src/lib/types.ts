@@ -37,6 +37,7 @@ export type Family =
   | "slow-eating"
   | "carb-quality"
   | "no-late-snack"
+  | "pre-meal-consult"
   // movement
   | "post-meal-walk"
   | "daily-steps"
@@ -45,6 +46,9 @@ export type Family =
   // recovery
   | "bedtime-shift"
   | "device-free-night"
+  | "caffeine-cutoff"
+  | "morning-light"
+  | "pre-sleep-routine"
   | "stress-pause"
   | "self-compassion"
   | "trigger-awareness"
@@ -62,12 +66,16 @@ export const FAMILY_PILLAR: Record<Family, Pillar> = {
   "slow-eating": "nutrition",
   "carb-quality": "nutrition",
   "no-late-snack": "nutrition",
+  "pre-meal-consult": "nutrition",
   "post-meal-walk": "movement",
   "daily-steps": "movement",
   "neat-boost": "movement",
   "low-impact-strength": "movement",
   "bedtime-shift": "recovery",
   "device-free-night": "recovery",
+  "caffeine-cutoff": "recovery",
+  "morning-light": "recovery",
+  "pre-sleep-routine": "recovery",
   "stress-pause": "recovery",
   "self-compassion": "recovery",
   "trigger-awareness": "recovery",
@@ -85,12 +93,16 @@ export const FAMILY_LABELS: Record<Family, string> = {
   "slow-eating": "細嚼慢嚥",
   "carb-quality": "主食選擇",
   "no-late-snack": "節制零食",
+  "pre-meal-consult": "餐前自我諮詢",
   "post-meal-walk": "餐後散步",
   "daily-steps": "每日步數",
   "neat-boost": "起身活動",
   "low-impact-strength": "低衝擊肌力",
   "bedtime-shift": "提早上床",
   "device-free-night": "睡前無手機",
+  "caffeine-cutoff": "咖啡因截止",
+  "morning-light": "晨光曝曬",
+  "pre-sleep-routine": "睡前儀式",
   "stress-pause": "壓力暫停",
   "self-compassion": "自我肯定",
   "trigger-awareness": "破功觀察",
@@ -229,6 +241,8 @@ export interface AppSettings {
   reminderTimes: string[];
   taskCount: 3 | 4 | 5;
   theme: "auto" | "light" | "dark";
+  /** Optional: user-provided Gemini API key for the in-app coach. Stored in localStorage. */
+  geminiKey?: string;
 }
 
 export interface AppState {

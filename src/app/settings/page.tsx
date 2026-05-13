@@ -13,6 +13,8 @@ import {
 export default function SettingsPage() {
   const { state, updateSettings, resetAll } = useStore();
   const [newTime, setNewTime] = useState("");
+  const [keyDraft, setKeyDraft] = useState(state.settings.geminiKey ?? "");
+  const [showKey, setShowKey] = useState(false);
 
   async function enableNotifications() {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -201,6 +203,71 @@ export default function SettingsPage() {
                 className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
               >
                 新增
+              </button>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="AI 教練">
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+          <div className="text-sm font-medium">Gemini API key（選填）</div>
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+            設定後，「教練」頁可以丟具體場景拿個人化建議。免費版每天 1500 次以上夠個人用。
+            申請：
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noreferrer"
+              className="ml-1 underline"
+            >
+              aistudio.google.com/apikey
+            </a>
+          </p>
+          <div className="mt-3 flex gap-2">
+            <input
+              type={showKey ? "text" : "password"}
+              value={keyDraft}
+              onChange={(e) => setKeyDraft(e.target.value)}
+              placeholder="貼上 API key"
+              className="flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm font-mono dark:border-stone-700 dark:bg-stone-900"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              className="rounded-xl border border-stone-200 bg-white px-3 text-xs dark:border-stone-800 dark:bg-stone-900"
+            >
+              {showKey ? "隱藏" : "顯示"}
+            </button>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[11px] text-stone-500 dark:text-stone-400">
+              Key 只存在你的裝置（localStorage），不會上傳到任何伺服器
+            </span>
+            <div className="flex gap-2">
+              {state.settings.geminiKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("移除已儲存的 API key？")) {
+                      updateSettings({ geminiKey: undefined });
+                      setKeyDraft("");
+                    }
+                  }}
+                  className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300"
+                >
+                  移除
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => updateSettings({ geminiKey: keyDraft.trim() || undefined })}
+                disabled={keyDraft.trim() === (state.settings.geminiKey ?? "")}
+                className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+              >
+                儲存
               </button>
             </div>
           </div>
