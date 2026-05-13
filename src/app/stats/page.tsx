@@ -11,6 +11,7 @@ import {
   TaskCategory,
 } from "@/lib/types";
 import { daysAgoISO, prettyDate, todayISO } from "@/lib/date";
+import { computeCurrentStreak, computeLongestStreak } from "@/lib/streak";
 
 export default function StatsPage() {
   return (
@@ -41,35 +42,11 @@ function StatsContent() {
     return m;
   }, [state.history]);
 
-  const streak = useMemo(() => {
-    const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
-    let s = 0;
-    for (const d of sorted) {
-      if (d.tasks.length === 0) break;
-      const rate = d.tasks.filter((t) => t.completed).length / d.tasks.length;
-      if (rate >= 0.6) s++;
-      else break;
-    }
-    return s;
-  }, [state.history]);
-
-  const longestStreak = useMemo(() => {
-    const sorted = [...state.history].sort((a, b) => a.date.localeCompare(b.date));
-    let best = 0;
-    let cur = 0;
-    for (const d of sorted) {
-      if (d.tasks.length === 0) {
-        cur = 0;
-        continue;
-      }
-      const rate = d.tasks.filter((t) => t.completed).length / d.tasks.length;
-      if (rate >= 0.6) {
-        cur++;
-        best = Math.max(best, cur);
-      } else cur = 0;
-    }
-    return best;
-  }, [state.history]);
+  const streak = useMemo(() => computeCurrentStreak(state.history), [state.history]);
+  const longestStreak = useMemo(
+    () => computeLongestStreak(state.history),
+    [state.history]
+  );
 
   const last7 = state.history
     .filter((d) => d.date <= today && d.date >= daysAgoISO(6))

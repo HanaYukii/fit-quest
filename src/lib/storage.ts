@@ -41,7 +41,11 @@ export function importStateFromJSON(json: string): AppState | null {
     const parsed = JSON.parse(json);
     if (typeof parsed !== "object" || !parsed) return null;
     if (parsed.schemaVersion !== 1) return null;
-    return { ...DEFAULT_STATE, ...parsed };
+    return {
+      ...DEFAULT_STATE,
+      ...parsed,
+      settings: { ...DEFAULT_STATE.settings, ...(parsed.settings ?? {}) },
+    };
   } catch {
     return null;
   }

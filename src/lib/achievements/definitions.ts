@@ -1,15 +1,8 @@
 import { AchievementDefinition, AppState, TASK_CATEGORIES, TaskCategory } from "../types";
+import { computeCurrentStreak } from "../streak";
 
 function currentStreak(state: AppState): number {
-  const sorted = [...state.history].sort((a, b) => b.date.localeCompare(a.date));
-  let streak = 0;
-  for (const day of sorted) {
-    if (day.tasks.length === 0) break;
-    const rate = day.tasks.filter((t) => t.completed).length / day.tasks.length;
-    if (rate >= 0.6) streak++;
-    else break;
-  }
-  return streak;
+  return computeCurrentStreak(state.history);
 }
 
 function totalCompleted(state: AppState): number {

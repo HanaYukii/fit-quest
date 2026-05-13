@@ -2,12 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
-import { todayISO } from "@/lib/date";
+import { timeToMinutes, todayISO } from "@/lib/date";
 
 function nowHHMM(): string {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
+
+// Only fire a reminder if "now" is within this many minutes after the configured
+// time. Prevents the late-open-app flood (4 overdue reminders firing at 23:00).
+const REMINDER_WINDOW_MIN = 3;
 
 const FIRED_KEY = "fit-quest:reminders-fired";
 
@@ -37,14 +41,27 @@ export function ReminderRunner() {
     const tick = () => {
       const today = todayISO();
       const now = nowHHMM();
+      const nowMin = timeToMinutes(now);
       const fired = loadFired();
       const todayFired = fired[today] ?? [];
 
       const undone =
         todayRecord?.tasks.filter((t) => !t.completed).length ?? 0;
 
+      let changed = false;
       for (const reminderTime of state.settings.reminderTimes) {
-        if (reminderTime > now) continue;
+        const reminderMin = timeToMinutes(reminderTime);
+        const age = nowMin - reminderMin;
+        // Outside the firing window — either still in the future, or too late
+        // (we never want to flood with reminders the user already missed).
+        if (age < 0 || age > REMINDER_WINDOW_MIN) {
+          // Still mark as "skipped" so we don't fire them later in the day either.
+          if (age > REMINDER_WINDOW_MIN && !todayFired.includes(reminderTime)) {
+            todayFired.push(reminderTime);
+            changed = true;
+          }
+          continue;
+        }
         if (todayFired.includes(reminderTime)) continue;
 
         if (
@@ -62,10 +79,10 @@ export function ReminderRunner() {
           }
         }
         todayFired.push(reminderTime);
+        changed = true;
       }
 
-      const fresh: Record<string, string[]> = { [today]: todayFired };
-      saveFired(fresh);
+      if (changed) saveFired({ [today]: todayFired });
     };
 
     tick();

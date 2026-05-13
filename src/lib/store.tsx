@@ -217,7 +217,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const acknowledgeAchievements = useCallback(() => {
-    setPendingAchievements([]);
+    // Dismiss only the front-of-queue item so subsequent achievements still surface.
+    setPendingAchievements((prev) => prev.slice(1));
   }, []);
 
   const value: StoreContextValue = {

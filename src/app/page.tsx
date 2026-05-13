@@ -7,20 +7,7 @@ import { TaskItem } from "@/components/TaskItem";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StreakBadge } from "@/components/StreakBadge";
 import { prettyDate, todayISO } from "@/lib/date";
-
-function currentStreak(
-  history: { tasks: { completed: boolean }[]; date: string }[]
-): number {
-  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
-  let streak = 0;
-  for (const d of sorted) {
-    if (d.tasks.length === 0) break;
-    const rate = d.tasks.filter((t) => t.completed).length / d.tasks.length;
-    if (rate >= 0.6) streak++;
-    else break;
-  }
-  return streak;
-}
+import { computeCurrentStreak } from "@/lib/streak";
 
 function encouragement(pct: number, done: number, total: number): string {
   if (total === 0) return "點下面的按鈕來生成今天的任務 ✨";
@@ -56,7 +43,7 @@ function HomeContent() {
   const done = tasks.filter((t) => t.completed).length;
   const pct = tasks.length === 0 ? 0 : done / tasks.length;
 
-  const streak = useMemo(() => currentStreak(state.history), [state.history]);
+  const streak = useMemo(() => computeCurrentStreak(state.history), [state.history]);
   const nickname = state.profile?.nickname ?? "你";
   const today = todayISO();
 
