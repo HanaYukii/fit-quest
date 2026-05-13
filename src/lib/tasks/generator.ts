@@ -2,22 +2,22 @@ import {
   AppSettings,
   DailyRecord,
   DailyTask,
-  TaskCategory,
+  FAMILY_PILLAR,
+  Family,
+  Level,
+  Pillar,
   TaskTemplate,
   UserProfile,
 } from "../types";
 import { TASK_LIBRARY } from "./library";
-import {
-  computeCategoryDifficulty,
-  computeRecentExecutionRate,
-} from "./difficulty";
+import { computeFamilyLevel, computeRecentExecutionRate } from "./difficulty";
 
 function pickRandom<T>(arr: T[]): T | undefined {
   if (arr.length === 0) return undefined;
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function filterByProfile(
+function filterForProfile(
   templates: TaskTemplate[],
   profile: UserProfile
 ): TaskTemplate[] {
@@ -27,41 +27,80 @@ function filterByProfile(
   });
 }
 
-function recentlyUsedTemplateIds(history: DailyRecord[], days: number): Set<string> {
+function recentlyUsedFamilies(history: DailyRecord[], days: number): Set<Family> {
   const recent = [...history]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, days);
-  const ids = new Set<string>();
-  for (const day of recent) {
-    for (const t of day.tasks) ids.add(t.templateId);
+  const set = new Set<Family>();
+  for (const d of recent) {
+    for (const t of d.tasks) set.add(t.family);
   }
-  return ids;
+  return set;
 }
 
-function pickForCategory(
-  category: TaskCategory,
+function pickFamilyForPillar(
+  pillar: Pillar,
   pool: TaskTemplate[],
-  history: DailyRecord[],
-  recentlyUsed: Set<string>
+  recent: Set<Family>,
+  alreadyPicked: Set<Family>
+): Family | undefined {
+  const families = Array.from(
+    new Set(
+      pool.filter((t) => t.pillar === pillar).map((t) => t.family)
+    )
+  ).filter((f) => !alreadyPicked.has(f));
+  if (families.length === 0) return undefined;
+
+  const fresh = families.filter((f) => !recent.has(f));
+  if (fresh.length > 0) return pickRandom(fresh);
+  return pickRandom(families);
+}
+
+function pickTemplateForFamily(
+  family: Family,
+  level: Level,
+  pool: TaskTemplate[]
 ): TaskTemplate | undefined {
-  const targetDiff = computeCategoryDifficulty(history, category);
-
-  const candidates = pool.filter((t) => t.category === category);
-  if (candidates.length === 0) return undefined;
-
-  const exact = candidates.filter(
-    (t) => t.difficulty === targetDiff && !recentlyUsed.has(t.id)
-  );
+  const sameFamily = pool.filter((t) => t.family === family);
+  if (sameFamily.length === 0) return undefined;
+  const exact = sameFamily.filter((t) => t.level === level);
   if (exact.length > 0) return pickRandom(exact);
+  // Fall back to nearest level (e.g., requested L3 but only L2 exists for this family)
+  return sameFamily.sort(
+    (a, b) => Math.abs(a.level - level) - Math.abs(b.level - level)
+  )[0];
+}
 
-  const exactAny = candidates.filter((t) => t.difficulty === targetDiff);
-  if (exactAny.length > 0) return pickRandom(exactAny);
+function materialize(template: TaskTemplate, profile: UserProfile): DailyTask {
+  const title = template.buildTitle ? template.buildTitle(profile) : template.title;
+  const description = template.buildDescription
+    ? template.buildDescription(profile)
+    : template.description;
+  return {
+    instanceId: `${template.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    templateId: template.id,
+    title,
+    description,
+    emoji: template.emoji,
+    family: template.family,
+    pillar: template.pillar,
+    level: template.level,
+    friction: template.friction,
+    verification: template.verification,
+    completed: false,
+    skipped: false,
+  };
+}
 
-  const sortedByDistance = [...candidates].sort(
-    (a, b) =>
-      Math.abs(a.difficulty - targetDiff) - Math.abs(b.difficulty - targetDiff)
-  );
-  return sortedByDistance[0];
+/**
+ * Pillar quotas decide the shape of the day. Nutrition leads because diet is
+ * the largest lever for weight management; hydration sits in the "bonus" pool
+ * so it can support the day without crowding out anchors.
+ */
+function pillarSlots(count: 3 | 4 | 5): Pillar[] {
+  if (count === 3) return ["nutrition", "movement", "recovery"];
+  if (count === 4) return ["nutrition", "movement", "recovery", "bonus"];
+  return ["nutrition", "movement", "recovery", "nutrition", "bonus"];
 }
 
 export function generateDailyTasks(
@@ -69,62 +108,50 @@ export function generateDailyTasks(
   history: DailyRecord[],
   settings: AppSettings
 ): DailyTask[] {
-  const pool = filterByProfile(TASK_LIBRARY, profile);
-  const rate = computeRecentExecutionRate(history);
+  const pool = filterForProfile(TASK_LIBRARY, profile);
 
-  let count = settings.taskCount;
+  // Decide count from execution rate (only after we have real signal)
+  let count: 3 | 4 | 5 = settings.taskCount;
   const hasEnoughHistory = history.some((d) => d.tasks.length > 0);
   if (hasEnoughHistory) {
-    if (rate < 0.4) {
-      count = 3;
-    } else if (rate > 0.85 && settings.taskCount < 5) {
+    const rate = computeRecentExecutionRate(history);
+    if (rate < 0.4) count = 3;
+    else if (rate > 0.85 && settings.taskCount < 5)
       count = (settings.taskCount + 1) as 4 | 5;
-    }
   }
 
-  const recentlyUsed = recentlyUsedTemplateIds(history, 2);
+  const slots = pillarSlots(count);
+  const recent = recentlyUsedFamilies(history, 2);
+  const picked = new Set<Family>();
+  const out: DailyTask[] = [];
 
-  const required: TaskCategory[] = ["movement", "hydration", "sleep"];
-  const optional: TaskCategory[] = ["diet", "mental", "reflection"];
-
-  const chosenTemplates: TaskTemplate[] = [];
-  const usedIds = new Set<string>();
-
-  for (const cat of required) {
-    if (chosenTemplates.length >= count) break;
-    const tmpl = pickForCategory(cat, pool, history, recentlyUsed);
-    if (tmpl && !usedIds.has(tmpl.id)) {
-      chosenTemplates.push(tmpl);
-      usedIds.add(tmpl.id);
-    }
+  for (const pillar of slots) {
+    const family = pickFamilyForPillar(pillar, pool, recent, picked);
+    if (!family) continue;
+    picked.add(family);
+    const level = computeFamilyLevel(history, family);
+    const tmpl = pickTemplateForFamily(family, level, pool);
+    if (!tmpl) continue;
+    out.push(materialize(tmpl, profile));
   }
 
-  const optionalShuffled = [...optional].sort(() => Math.random() - 0.5);
-  for (const cat of optionalShuffled) {
-    if (chosenTemplates.length >= count) break;
-    const tmpl = pickForCategory(cat, pool, history, recentlyUsed);
-    if (tmpl && !usedIds.has(tmpl.id)) {
-      chosenTemplates.push(tmpl);
-      usedIds.add(tmpl.id);
-    }
-  }
-
-  while (chosenTemplates.length < count) {
-    const remaining = pool.filter((t) => !usedIds.has(t.id));
+  // If something fell through (e.g., very restrictive profile), top up with
+  // any remaining family in any pillar.
+  while (out.length < count) {
+    const remaining = Array.from(
+      new Set(pool.map((t) => t.family).filter((f) => !picked.has(f)))
+    );
     if (remaining.length === 0) break;
-    const t = pickRandom(remaining)!;
-    chosenTemplates.push(t);
-    usedIds.add(t.id);
+    const family = pickRandom(remaining)!;
+    picked.add(family);
+    const level = computeFamilyLevel(history, family);
+    const tmpl = pickTemplateForFamily(family, level, pool);
+    if (!tmpl) continue;
+    out.push(materialize(tmpl, profile));
   }
 
-  return chosenTemplates.map((t) => ({
-    instanceId: `${t.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    templateId: t.id,
-    title: t.title,
-    description: t.description,
-    emoji: t.emoji,
-    category: t.category,
-    difficulty: t.difficulty,
-    completed: false,
-  }));
+  return out;
 }
+
+// Re-export for backward references that may import from generator
+export { FAMILY_PILLAR };

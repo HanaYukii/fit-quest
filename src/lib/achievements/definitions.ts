@@ -1,4 +1,10 @@
-import { AchievementDefinition, AppState, TASK_CATEGORIES, TaskCategory } from "../types";
+import {
+  AchievementDefinition,
+  AppState,
+  Family,
+  PILLARS,
+  Pillar,
+} from "../types";
 import { computeCurrentStreak } from "../streak";
 
 function currentStreak(state: AppState): number {
@@ -12,16 +18,26 @@ function totalCompleted(state: AppState): number {
   );
 }
 
-function countByCategory(state: AppState, cat: TaskCategory): number {
+function countByPillar(state: AppState, pillar: Pillar): number {
   return state.history.reduce(
     (sum, d) =>
-      sum + d.tasks.filter((t) => t.completed && t.category === cat).length,
+      sum + d.tasks.filter((t) => t.completed && t.pillar === pillar).length,
+    0
+  );
+}
+
+function countByFamily(state: AppState, family: Family): number {
+  return state.history.reduce(
+    (sum, d) =>
+      sum + d.tasks.filter((t) => t.completed && t.family === family).length,
     0
   );
 }
 
 function journalDayCount(state: AppState): number {
-  return state.history.filter((d) => d.journal && (d.journal.text || d.journal.mood)).length;
+  return state.history.filter(
+    (d) => d.journal && (d.journal.text || d.journal.mood)
+  ).length;
 }
 
 function weightDropKg(state: AppState): number {
@@ -35,7 +51,9 @@ function weightDropKg(state: AppState): number {
   return Math.max(0, start - latest);
 }
 
-function makeStreakAchievement(
+// ───────────────────────── factories ─────────────────────────
+
+function streakAch(
   goal: number,
   title: string,
   emoji: string
@@ -43,7 +61,7 @@ function makeStreakAchievement(
   return {
     id: `streak-${goal}`,
     title,
-    description: `連續完成主要任務 ${goal} 天`,
+    description: `連續達標 ${goal} 天（每天至少完成 1 個飲食或活動 anchor）`,
     emoji,
     category: "streak",
     check: (s) => {
@@ -53,7 +71,7 @@ function makeStreakAchievement(
   };
 }
 
-function makeTotalAchievement(
+function totalAch(
   goal: number,
   title: string,
   emoji: string
@@ -71,51 +89,84 @@ function makeTotalAchievement(
   };
 }
 
-function makeCategoryAchievement(
-  cat: TaskCategory,
+function pillarAch(
+  pillar: Pillar,
   goal: number,
   title: string,
-  emoji: string
+  emoji: string,
+  description?: string
 ): AchievementDefinition {
   return {
-    id: `cat-${cat}-${goal}`,
+    id: `pillar-${pillar}-${goal}`,
     title,
-    description: `${title}：完成 ${goal} 個任務`,
+    description: description ?? `完成 ${goal} 個${title}類任務`,
     emoji,
-    category: "category",
+    category: "pillar",
     check: (s) => {
-      const cur = countByCategory(s, cat);
+      const cur = countByPillar(s, pillar);
+      return { unlocked: cur >= goal, progress: Math.min(cur, goal), goal };
+    },
+  };
+}
+
+function familyAch(
+  family: Family,
+  goal: number,
+  title: string,
+  emoji: string,
+  description?: string
+): AchievementDefinition {
+  return {
+    id: `family-${family}-${goal}`,
+    title,
+    description: description ?? `${title}：累積完成 ${goal} 次`,
+    emoji,
+    category: "family",
+    check: (s) => {
+      const cur = countByFamily(s, family);
       return { unlocked: cur >= goal, progress: Math.min(cur, goal), goal };
     },
   };
 }
 
 export const ACHIEVEMENTS: AchievementDefinition[] = [
-  makeStreakAchievement(3, "三天上手", "🌱"),
-  makeStreakAchievement(7, "一週堅持", "🔥"),
-  makeStreakAchievement(14, "兩週習慣", "⚡"),
-  makeStreakAchievement(30, "一個月鐵粉", "🏆"),
-  makeStreakAchievement(60, "兩個月里程", "💎"),
-  makeStreakAchievement(100, "百日不墜", "👑"),
+  // Streak — anchor-aware
+  streakAch(3, "三天上手", "🌱"),
+  streakAch(7, "一週堅持", "🔥"),
+  streakAch(14, "兩週習慣", "⚡"),
+  streakAch(30, "一個月鐵粉", "🏆"),
+  streakAch(60, "兩個月里程", "💎"),
+  streakAch(100, "百日不墜", "👑"),
 
-  makeTotalAchievement(10, "起步走", "👣"),
-  makeTotalAchievement(50, "半百任務", "🎯"),
-  makeTotalAchievement(100, "破百達人", "💯"),
-  makeTotalAchievement(300, "三百小成", "🥇"),
-  makeTotalAchievement(500, "五百中關", "🥈"),
-  makeTotalAchievement(1000, "千次行動", "🌟"),
+  // Total counts
+  totalAch(10, "起步走", "👣"),
+  totalAch(50, "半百任務", "🎯"),
+  totalAch(100, "破百達人", "💯"),
+  totalAch(300, "三百小成", "🥇"),
+  totalAch(500, "五百中關", "🥈"),
+  totalAch(1000, "千次行動", "🌟"),
 
-  makeCategoryAchievement("movement", 30, "走動派", "🚶"),
-  makeCategoryAchievement("diet", 30, "節制餐桌", "🥗"),
-  makeCategoryAchievement("sleep", 30, "夜行終結者", "🌙"),
-  makeCategoryAchievement("hydration", 30, "補水王", "💧"),
-  makeCategoryAchievement("mental", 30, "心穩定者", "🧘"),
-  makeCategoryAchievement("reflection", 15, "自省鏡", "🪞"),
+  // Pillar mastery — nutrition and movement are the two anchors, weighted more
+  pillarAch("nutrition", 30, "飲食 30", "🥗", "完成 30 個飲食任務"),
+  pillarAch("nutrition", 100, "飲食 100", "🍱", "完成 100 個飲食任務"),
+  pillarAch("movement", 30, "活動 30", "🚶", "完成 30 個活動任務"),
+  pillarAch("movement", 100, "活動 100", "🏃", "完成 100 個活動任務"),
+  pillarAch("recovery", 30, "恢復 30", "🌙", "完成 30 個恢復任務"),
 
+  // Family mastery — key behavior families
+  familyAch("protein-anchor", 15, "蛋白質達人", "🥚"),
+  familyAch("veg-first", 15, "蔬菜先行", "🥬"),
+  familyAch("post-meal-walk", 15, "餐後行者", "🚶"),
+  familyAch("drink-swap", 10, "戒糖飲", "🚱"),
+  familyAch("bedtime-shift", 10, "早睡冠軍", "🌜"),
+  familyAch("daily-journal", 15, "日誌達人", "📓"),
+  familyAch("trigger-awareness", 10, "破功觀察家", "🔍"),
+
+  // Milestones
   {
     id: "milestone-first-day",
     title: "踏出第一步",
-    description: "完成今天任何一個任務",
+    description: "完成任何 1 個任務",
     emoji: "🐣",
     category: "milestone",
     check: (s) => {
@@ -137,33 +188,34 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: "milestone-perfect-day",
     title: "完美一日",
-    description: "單日完成所有任務",
+    description: "單日把所有任務（非跳過）都完成",
     emoji: "🌈",
     category: "milestone",
     check: (s) => {
-      const hasPerfect = s.history.some(
-        (d) => d.tasks.length > 0 && d.tasks.every((t) => t.completed)
-      );
+      const hasPerfect = s.history.some((d) => {
+        const active = d.tasks.filter((t) => !t.skipped);
+        return active.length > 0 && active.every((t) => t.completed);
+      });
       return { unlocked: hasPerfect, progress: hasPerfect ? 1 : 0, goal: 1 };
     },
   },
   {
-    id: "milestone-perfect-week",
-    title: "完美一週",
-    description: "連續 7 天都至少完成一個任務",
-    emoji: "🎖️",
+    id: "pillar-collector",
+    title: "四面手",
+    description: "飲食、活動、恢復、加分四支柱各完成過至少 1 個任務",
+    emoji: "🎨",
     category: "milestone",
     check: (s) => {
-      const sorted = [...s.history].sort((a, b) => b.date.localeCompare(a.date));
-      let count = 0;
-      for (const day of sorted) {
-        if (day.tasks.some((t) => t.completed)) count++;
-        else break;
-        if (count >= 7) break;
-      }
-      return { unlocked: count >= 7, progress: count, goal: 7 };
+      const covered = PILLARS.filter((p) => countByPillar(s, p) > 0).length;
+      return {
+        unlocked: covered === PILLARS.length,
+        progress: covered,
+        goal: PILLARS.length,
+      };
     },
   },
+
+  // Special
   {
     id: "journal-7",
     title: "寫了一週",
@@ -228,21 +280,6 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
         unlocked: drop >= 5,
         progress: Math.min(Math.round(drop * 10), 50),
         goal: 50,
-      };
-    },
-  },
-  {
-    id: "category-collector",
-    title: "六面手",
-    description: "六種任務類別各完成過至少一個",
-    emoji: "🎨",
-    category: "special",
-    check: (s) => {
-      const covered = TASK_CATEGORIES.filter((c) => countByCategory(s, c) > 0).length;
-      return {
-        unlocked: covered === TASK_CATEGORIES.length,
-        progress: covered,
-        goal: TASK_CATEGORIES.length,
       };
     },
   },

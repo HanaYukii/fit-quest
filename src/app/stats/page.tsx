@@ -4,12 +4,7 @@ import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { ProfileGate } from "@/components/ProfileGate";
 import { ProgressBar } from "@/components/ProgressBar";
-import {
-  CATEGORY_ACCENT,
-  CATEGORY_LABELS,
-  TASK_CATEGORIES,
-  TaskCategory,
-} from "@/lib/types";
+import { PILLARS, PILLAR_ACCENT, PILLAR_LABELS, Pillar } from "@/lib/types";
 import { daysAgoISO, prettyDate, todayISO } from "@/lib/date";
 import { computeCurrentStreak, computeLongestStreak } from "@/lib/streak";
 
@@ -32,11 +27,13 @@ function StatsContent() {
   }, []);
 
   const dayMap = useMemo(() => {
-    const m = new Map<string, { done: number; total: number }>();
+    const m = new Map<string, { done: number; total: number; skipped: number }>();
     for (const d of state.history) {
+      const active = d.tasks.filter((t) => !t.skipped);
       m.set(d.date, {
-        done: d.tasks.filter((t) => t.completed).length,
-        total: d.tasks.length,
+        done: active.filter((t) => t.completed).length,
+        total: active.length,
+        skipped: d.tasks.length - active.length,
       });
     }
     return m;
@@ -51,29 +48,36 @@ function StatsContent() {
   const last7 = state.history
     .filter((d) => d.date <= today && d.date >= daysAgoISO(6))
     .reduce(
-      (acc, d) => ({
-        done: acc.done + d.tasks.filter((t) => t.completed).length,
-        total: acc.total + d.tasks.length,
-      }),
+      (acc, d) => {
+        const active = d.tasks.filter((t) => !t.skipped);
+        return {
+          done: acc.done + active.filter((t) => t.completed).length,
+          total: acc.total + active.length,
+        };
+      },
       { done: 0, total: 0 }
     );
   const last7Rate = last7.total > 0 ? last7.done / last7.total : 0;
 
-  const categoryStats = useMemo(() => {
-    const map: Record<TaskCategory, { done: number; total: number }> = {
+  const totalCompleted = state.history.reduce(
+    (s, d) => s + d.tasks.filter((t) => t.completed).length,
+    0
+  );
+
+  const pillarStats = useMemo(() => {
+    const map: Record<Pillar, { done: number; total: number }> = {
+      nutrition: { done: 0, total: 0 },
       movement: { done: 0, total: 0 },
-      diet: { done: 0, total: 0 },
-      sleep: { done: 0, total: 0 },
-      hydration: { done: 0, total: 0 },
-      mental: { done: 0, total: 0 },
-      reflection: { done: 0, total: 0 },
+      recovery: { done: 0, total: 0 },
+      bonus: { done: 0, total: 0 },
     };
     const cutoff = daysAgoISO(29);
     for (const d of state.history) {
       if (d.date < cutoff) continue;
       for (const t of d.tasks) {
-        map[t.category].total++;
-        if (t.completed) map[t.category].done++;
+        if (t.skipped) continue;
+        map[t.pillar].total++;
+        if (t.completed) map[t.pillar].done++;
       }
     }
     return map;
@@ -100,20 +104,16 @@ function StatsContent() {
           value={`${Math.round(last7Rate * 100)}%`}
           emoji="🎯"
         />
-        <StatTile
-          label="累積完成"
-          value={`${state.history.reduce(
-            (s, d) => s + d.tasks.filter((t) => t.completed).length,
-            0
-          )}`}
-          emoji="✅"
-        />
+        <StatTile label="累積完成" value={`${totalCompleted}`} emoji="✅" />
       </section>
 
       <section className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
         <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-300">
           過去 14 天
         </h2>
+        <p className="mt-0.5 text-[11px] text-stone-500 dark:text-stone-400">
+          顏色深淺 = 當日完成率（已扣除跳過）
+        </p>
         <div className="mt-3 grid grid-cols-7 gap-1.5">
           {last14Dates.map((d) => {
             const stats = dayMap.get(d);
@@ -130,12 +130,12 @@ function StatsContent() {
                     !stats
                       ? "bg-stone-100 dark:bg-stone-800"
                       : rate >= 0.8
-                      ? "bg-emerald-500"
-                      : rate >= 0.5
-                      ? "bg-emerald-300 dark:bg-emerald-700"
-                      : rate > 0
-                      ? "bg-emerald-200 dark:bg-emerald-800"
-                      : "bg-stone-200 dark:bg-stone-700"
+                        ? "bg-emerald-500"
+                        : rate >= 0.5
+                          ? "bg-emerald-300 dark:bg-emerald-700"
+                          : rate > 0
+                            ? "bg-emerald-200 dark:bg-emerald-800"
+                            : "bg-stone-200 dark:bg-stone-700"
                   } ${isToday ? "ring-2 ring-emerald-500" : ""}`}
                 />
                 <span className="text-[10px] text-stone-500 dark:text-stone-400">
@@ -149,27 +149,28 @@ function StatsContent() {
 
       <section className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
         <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-          類別表現（近 30 天）
+          四大支柱表現（近 30 天）
         </h2>
         <div className="mt-3 flex flex-col gap-2.5">
-          {TASK_CATEGORIES.map((cat) => {
-            const s = categoryStats[cat];
+          {PILLARS.map((pillar) => {
+            const s = pillarStats[pillar];
             const rate = s.total > 0 ? s.done / s.total : 0;
             return (
-              <div key={cat}>
+              <div key={pillar}>
                 <div className="flex items-center justify-between text-xs">
-                  <span className={`font-medium ${CATEGORY_ACCENT[cat]}`}>
-                    {CATEGORY_LABELS[cat]}
+                  <span className={`font-medium ${PILLAR_ACCENT[pillar]}`}>
+                    {PILLAR_LABELS[pillar]}
                   </span>
                   <span className="tabular-nums text-stone-500 dark:text-stone-400">
-                    {s.done} / {s.total || 0}
+                    {s.done} / {s.total || 0}{" "}
+                    {s.total > 0 && (
+                      <span className="ml-1 text-stone-400">
+                        · {Math.round(rate * 100)}%
+                      </span>
+                    )}
                   </span>
                 </div>
-                <ProgressBar
-                  value={s.done}
-                  max={Math.max(1, s.total)}
-                  className="mt-1"
-                />
+                <ProgressBar value={s.done} max={Math.max(1, s.total)} className="mt-1" />
               </div>
             );
           })}
@@ -254,8 +255,8 @@ function WeightChart({ series }: { series: { date: string; weight: number }[] })
             delta < 0
               ? "font-semibold text-emerald-600 dark:text-emerald-400"
               : delta > 0
-              ? "text-rose-500"
-              : ""
+                ? "text-rose-500"
+                : ""
           }
         >
           {dir} {Math.abs(delta).toFixed(1)} kg

@@ -35,6 +35,7 @@ interface StoreContextValue {
   acknowledgeAchievements: () => void;
   setProfile: (profile: UserProfile) => void;
   toggleTask: (instanceId: string) => void;
+  skipTask: (instanceId: string) => void;
   saveJournal: (date: string, entry: Partial<JournalEntry>) => void;
   ensureTodayTasks: () => void;
   regenerateTodayTasks: () => void;
@@ -163,15 +164,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (!day.tasks.some((t) => t.instanceId === instanceId)) return day;
           return {
             ...day,
-            tasks: day.tasks.map((t) =>
-              t.instanceId === instanceId
-                ? {
-                    ...t,
-                    completed: !t.completed,
-                    completedAt: !t.completed ? new Date().toISOString() : undefined,
-                  }
-                : t
-            ),
+            tasks: day.tasks.map((t) => {
+              if (t.instanceId !== instanceId) return t;
+              const nextCompleted = !t.completed;
+              return {
+                ...t,
+                completed: nextCompleted,
+                completedAt: nextCompleted ? new Date().toISOString() : undefined,
+                // Completing a task clears any skipped flag.
+                skipped: nextCompleted ? false : t.skipped,
+                skippedAt: nextCompleted ? undefined : t.skippedAt,
+              };
+            }),
+          };
+        });
+        return { ...prev, history };
+      });
+    },
+    [update]
+  );
+
+  const skipTask = useCallback(
+    (instanceId: string) => {
+      update((prev) => {
+        const history = prev.history.map((day) => {
+          if (!day.tasks.some((t) => t.instanceId === instanceId)) return day;
+          return {
+            ...day,
+            tasks: day.tasks.map((t) => {
+              if (t.instanceId !== instanceId) return t;
+              const nextSkipped = !t.skipped;
+              return {
+                ...t,
+                skipped: nextSkipped,
+                skippedAt: nextSkipped ? new Date().toISOString() : undefined,
+                // Skipping clears the completed flag.
+                completed: nextSkipped ? false : t.completed,
+                completedAt: nextSkipped ? undefined : t.completedAt,
+              };
+            }),
           };
         });
         return { ...prev, history };
@@ -229,6 +260,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     acknowledgeAchievements,
     setProfile,
     toggleTask,
+    skipTask,
     saveJournal,
     ensureTodayTasks,
     regenerateTodayTasks,

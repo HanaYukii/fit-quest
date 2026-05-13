@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { exportStateAsJSON, importStateFromJSON } from "@/lib/storage";
+import {
+  clearState,
+  exportStateAsJSON,
+  importStateFromJSON,
+  saveState,
+} from "@/lib/storage";
 
 export default function SettingsPage() {
   const { state, updateSettings, resetAll } = useStore();
@@ -74,7 +79,7 @@ export default function SettingsPage() {
           "匯入會覆蓋目前的資料。確定嗎？\n建議先匯出目前的備份再執行。"
         )
       ) {
-        localStorage.setItem("fit-quest:v1", JSON.stringify(result));
+        saveState(result);
         location.reload();
       }
     };
@@ -88,7 +93,7 @@ export default function SettingsPage() {
     );
     if (input === confirmText) {
       resetAll();
-      localStorage.removeItem("fit-quest:v1");
+      clearState();
       location.href = "/profile";
     }
   }

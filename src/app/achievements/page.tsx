@@ -10,7 +10,8 @@ import { ProgressBar } from "@/components/ProgressBar";
 const CATEGORY_LABELS: Record<string, string> = {
   streak: "連續打卡",
   count: "累積里程",
-  category: "類別大師",
+  pillar: "支柱大師",
+  family: "行為家族",
   milestone: "成長軌跡",
   special: "特殊紀念",
 };

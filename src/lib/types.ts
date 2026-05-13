@@ -1,21 +1,109 @@
-export type TaskCategory =
-  | "movement"
-  | "diet"
-  | "sleep"
+// ───────────────────────── Pillar / Family ─────────────────────────
+
+export type Pillar = "nutrition" | "movement" | "recovery" | "bonus";
+
+export const PILLARS: Pillar[] = ["nutrition", "movement", "recovery", "bonus"];
+
+export const PILLAR_LABELS: Record<Pillar, string> = {
+  nutrition: "飲食",
+  movement: "活動",
+  recovery: "恢復",
+  bonus: "加分",
+};
+
+export const PILLAR_COLORS: Record<Pillar, string> = {
+  nutrition:
+    "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+  movement: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+  recovery:
+    "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+  bonus: "bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
+};
+
+export const PILLAR_ACCENT: Record<Pillar, string> = {
+  nutrition: "text-orange-600 dark:text-orange-400",
+  movement: "text-sky-600 dark:text-sky-400",
+  recovery: "text-indigo-600 dark:text-indigo-400",
+  bonus: "text-stone-600 dark:text-stone-400",
+};
+
+export type Family =
+  // nutrition
+  | "veg-first"
+  | "protein-anchor"
+  | "drink-swap"
+  | "portion"
+  | "meal-photo"
+  | "slow-eating"
+  | "carb-quality"
+  | "no-late-snack"
+  // movement
+  | "post-meal-walk"
+  | "daily-steps"
+  | "neat-boost"
+  | "low-impact-strength"
+  // recovery
+  | "bedtime-shift"
+  | "device-free-night"
+  | "stress-pause"
+  | "self-compassion"
+  | "trigger-awareness"
+  | "daily-journal"
+  // bonus
   | "hydration"
-  | "mental"
-  | "reflection";
+  | "environment-prep";
 
-export const TASK_CATEGORIES: TaskCategory[] = [
-  "movement",
-  "diet",
-  "sleep",
-  "hydration",
-  "mental",
-  "reflection",
-];
+export const FAMILY_PILLAR: Record<Family, Pillar> = {
+  "veg-first": "nutrition",
+  "protein-anchor": "nutrition",
+  "drink-swap": "nutrition",
+  portion: "nutrition",
+  "meal-photo": "nutrition",
+  "slow-eating": "nutrition",
+  "carb-quality": "nutrition",
+  "no-late-snack": "nutrition",
+  "post-meal-walk": "movement",
+  "daily-steps": "movement",
+  "neat-boost": "movement",
+  "low-impact-strength": "movement",
+  "bedtime-shift": "recovery",
+  "device-free-night": "recovery",
+  "stress-pause": "recovery",
+  "self-compassion": "recovery",
+  "trigger-awareness": "recovery",
+  "daily-journal": "recovery",
+  hydration: "bonus",
+  "environment-prep": "bonus",
+};
 
-export type Difficulty = 1 | 2 | 3;
+export const FAMILY_LABELS: Record<Family, string> = {
+  "veg-first": "先吃菜",
+  "protein-anchor": "蛋白質錨點",
+  "drink-swap": "飲料替換",
+  portion: "份量控制",
+  "meal-photo": "餐照紀錄",
+  "slow-eating": "細嚼慢嚥",
+  "carb-quality": "主食選擇",
+  "no-late-snack": "節制零食",
+  "post-meal-walk": "餐後散步",
+  "daily-steps": "每日步數",
+  "neat-boost": "起身活動",
+  "low-impact-strength": "低衝擊肌力",
+  "bedtime-shift": "提早上床",
+  "device-free-night": "睡前無手機",
+  "stress-pause": "壓力暫停",
+  "self-compassion": "自我肯定",
+  "trigger-awareness": "破功觀察",
+  "daily-journal": "每日日誌",
+  hydration: "補水",
+  "environment-prep": "環境準備",
+};
+
+export type Level = 1 | 2 | 3;
+export type Friction = "low" | "medium" | "high";
+export type Verification = "self-report" | "photo" | "timer" | "count";
+
+// ───────────────────────── Constraints ─────────────────────────
 
 export type Constraint =
   | "knee-issue"
@@ -35,44 +123,10 @@ export const CONSTRAINT_LABELS: Record<Constraint, string> = {
   vegetarian: "素食",
   "no-equipment": "沒運動器材",
   "small-space": "居家空間小",
-  "late-sleeper": "容易晚睡",
+  "late-sleeper": "容易晚睡（建議用「比平常早」的時點）",
 };
 
-export interface TaskTemplate {
-  id: string;
-  category: TaskCategory;
-  difficulty: Difficulty;
-  title: string;
-  description?: string;
-  emoji: string;
-  excludeFor?: Constraint[];
-  estimatedMinutes?: number;
-}
-
-export interface DailyTask {
-  instanceId: string;
-  templateId: string;
-  title: string;
-  description?: string;
-  emoji: string;
-  category: TaskCategory;
-  difficulty: Difficulty;
-  completed: boolean;
-  completedAt?: string;
-}
-
-export interface JournalEntry {
-  mood?: 1 | 2 | 3 | 4 | 5;
-  weightKg?: number;
-  text?: string;
-  updatedAt: string;
-}
-
-export interface DailyRecord {
-  date: string;
-  tasks: DailyTask[];
-  journal?: JournalEntry;
-}
+// ───────────────────────── Profile ─────────────────────────
 
 export interface UserProfile {
   nickname: string;
@@ -89,11 +143,69 @@ export interface UserProfile {
   updatedAt: string;
 }
 
+// ───────────────────────── Task templates / instances ─────────────────────────
+
+export interface TaskTemplate {
+  id: string;
+  family: Family;
+  pillar: Pillar;
+  level: Level;
+  emoji: string;
+  /** Static title used when no profile-driven build is provided. */
+  title: string;
+  description?: string;
+  effortMinutes?: number;
+  friction: Friction;
+  verification: Verification;
+  /** Skip this template if user has any of these constraints. */
+  excludeFor?: Constraint[];
+  /** Boost selection weight if user has any of these (constraint-aware preference). */
+  preferFor?: Constraint[];
+  /** Profile-driven title (e.g., "比 {sleepTime} 早 15 分鐘"). When set, replaces static title. */
+  buildTitle?: (profile: UserProfile) => string;
+  buildDescription?: (profile: UserProfile) => string | undefined;
+}
+
+export interface DailyTask {
+  instanceId: string;
+  templateId: string;
+  title: string;
+  description?: string;
+  emoji: string;
+  family: Family;
+  pillar: Pillar;
+  level: Level;
+  friction: Friction;
+  verification: Verification;
+  completed: boolean;
+  completedAt?: string;
+  skipped: boolean;
+  skippedAt?: string;
+}
+
+// ───────────────────────── Journal / records ─────────────────────────
+
+export interface JournalEntry {
+  mood?: 1 | 2 | 3 | 4 | 5;
+  weightKg?: number;
+  text?: string;
+  updatedAt: string;
+}
+
+export interface DailyRecord {
+  date: string;
+  tasks: DailyTask[];
+  journal?: JournalEntry;
+}
+
+// ───────────────────────── Achievements ─────────────────────────
+
 export type AchievementCategory =
   | "streak"
   | "count"
   | "milestone"
-  | "category"
+  | "pillar"
+  | "family"
   | "special";
 
 export interface AchievementDefinition {
@@ -110,6 +222,8 @@ export interface UnlockedAchievement {
   unlockedAt: string;
 }
 
+// ───────────────────────── Settings + state ─────────────────────────
+
 export interface AppSettings {
   notifications: boolean;
   reminderTimes: string[];
@@ -118,7 +232,7 @@ export interface AppSettings {
 }
 
 export interface AppState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   profile: UserProfile | null;
   history: DailyRecord[];
   unlockedAchievements: UnlockedAchievement[];
@@ -133,41 +247,19 @@ export const DEFAULT_SETTINGS: AppSettings = {
 };
 
 export const DEFAULT_STATE: AppState = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   profile: null,
   history: [],
   unlockedAchievements: [],
   settings: DEFAULT_SETTINGS,
 };
 
-export const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  movement: "運動",
-  diet: "飲食",
-  sleep: "作息",
-  hydration: "補水",
-  mental: "心理",
-  reflection: "反思",
-};
+// ───────────────────────── Mood ─────────────────────────
 
-export const CATEGORY_COLORS: Record<TaskCategory, string> = {
-  movement: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
-  diet: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-  sleep: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-  hydration: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
-  mental: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
-  reflection: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
-};
-
-export const CATEGORY_ACCENT: Record<TaskCategory, string> = {
-  movement: "text-sky-600 dark:text-sky-400",
-  diet: "text-orange-600 dark:text-orange-400",
-  sleep: "text-indigo-600 dark:text-indigo-400",
-  hydration: "text-cyan-600 dark:text-cyan-400",
-  mental: "text-violet-600 dark:text-violet-400",
-  reflection: "text-rose-600 dark:text-rose-400",
-};
-
-export const MOOD_LABELS: Record<1 | 2 | 3 | 4 | 5, { emoji: string; label: string }> = {
+export const MOOD_LABELS: Record<
+  1 | 2 | 3 | 4 | 5,
+  { emoji: string; label: string }
+> = {
   1: { emoji: "😞", label: "很低落" },
   2: { emoji: "😕", label: "有點悶" },
   3: { emoji: "😐", label: "普通" },

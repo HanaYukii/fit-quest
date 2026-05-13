@@ -32,6 +32,7 @@ function HomeContent() {
     todayRecord,
     ensureTodayTasks,
     toggleTask,
+    skipTask,
     regenerateTodayTasks,
   } = useStore();
 
@@ -40,8 +41,10 @@ function HomeContent() {
   }, [ensureTodayTasks]);
 
   const tasks = todayRecord?.tasks ?? [];
-  const done = tasks.filter((t) => t.completed).length;
-  const pct = tasks.length === 0 ? 0 : done / tasks.length;
+  const activeTasks = tasks.filter((t) => !t.skipped);
+  const done = activeTasks.filter((t) => t.completed).length;
+  const denominator = activeTasks.length;
+  const pct = denominator === 0 ? 0 : done / denominator;
 
   const streak = useMemo(() => computeCurrentStreak(state.history), [state.history]);
   const nickname = state.profile?.nickname ?? "你";
@@ -72,17 +75,22 @@ function HomeContent() {
                 {done}
               </span>
               <span className="text-lg text-stone-500 dark:text-stone-400">
-                / {tasks.length}
+                / {denominator}
               </span>
+              {tasks.length !== denominator && (
+                <span className="text-xs text-stone-400 dark:text-stone-500">
+                  （已跳過 {tasks.length - denominator}）
+                </span>
+              )}
             </div>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             {Math.round(pct * 100)}%
           </span>
         </div>
-        <ProgressBar value={done} max={Math.max(1, tasks.length)} className="mt-3" />
+        <ProgressBar value={done} max={Math.max(1, denominator)} className="mt-3" />
         <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">
-          {encouragement(pct, done, tasks.length)}
+          {encouragement(pct, done, denominator)}
         </p>
       </section>
 
@@ -96,7 +104,12 @@ function HomeContent() {
           </button>
         ) : (
           tasks.map((task) => (
-            <TaskItem key={task.instanceId} task={task} onToggle={toggleTask} />
+            <TaskItem
+              key={task.instanceId}
+              task={task}
+              onToggle={toggleTask}
+              onSkip={skipTask}
+            />
           ))
         )}
       </section>
