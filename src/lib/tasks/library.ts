@@ -358,9 +358,10 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     pillar: "movement",
     level: 1,
     emoji: "🪑",
-    title: "每小時起身活動 2 分鐘，今天做到 3 次",
+    title: "每小時起身活動 2 分鐘，今天做滿 3 次",
     friction: "medium",
     verification: "count",
+    tally: { unit: "次", target: 3 },
   },
   {
     id: "neat-l2",
@@ -368,9 +369,10 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     pillar: "movement",
     level: 2,
     emoji: "🪑",
-    title: "久坐超過 50 分鐘就站起來走一圈，今天做到 5 次",
+    title: "久坐超過 50 分鐘就站起來走一圈，今天做滿 5 次",
     friction: "medium",
     verification: "count",
+    tally: { unit: "次", target: 5 },
   },
   {
     id: "neat-l3",
@@ -760,16 +762,18 @@ export const TASK_LIBRARY: TaskTemplate[] = [
 
   // ═══════════════ BONUS ═══════════════
 
-  // hydration
+  // hydration（計次任務：每杯 ~200ml）
   {
     id: "hydra-l1",
     family: "hydration",
     pillar: "bonus",
     level: 1,
     emoji: "💧",
-    title: "起床先喝 500ml 水",
+    title: "今天累積喝 6 杯水",
+    description: "每杯約 200ml，看到水壺就 +1。",
     friction: "low",
-    verification: "self-report",
+    verification: "count",
+    tally: { unit: "杯", target: 6 },
   },
   {
     id: "hydra-l2",
@@ -777,9 +781,10 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     pillar: "bonus",
     level: 2,
     emoji: "💧",
-    title: "今天累積喝滿 1500ml 水",
+    title: "今天累積喝 8 杯水",
     friction: "medium",
     verification: "count",
+    tally: { unit: "杯", target: 8 },
   },
   {
     id: "hydra-l3",
@@ -787,9 +792,10 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     pillar: "bonus",
     level: 3,
     emoji: "💧",
-    title: "今天累積喝滿 2000ml 水（出門帶水壺）",
+    title: "今天累積喝 10 杯水（避開含糖飲料）",
     friction: "high",
     verification: "count",
+    tally: { unit: "杯", target: 10 },
   },
 
   // environment-prep

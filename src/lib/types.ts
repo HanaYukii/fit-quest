@@ -157,6 +157,15 @@ export interface UserProfile {
 
 // ───────────────────────── Task templates / instances ─────────────────────────
 
+/**
+ * When set, the task is tracked as a tally (tap-to-increment counter) rather
+ * than a single checkbox. The task auto-completes once tallyCount >= target.
+ */
+export interface TallyConfig {
+  unit: string; // e.g. "杯", "次"
+  target: number; // e.g. 8
+}
+
 export interface TaskTemplate {
   id: string;
   family: Family;
@@ -169,6 +178,8 @@ export interface TaskTemplate {
   effortMinutes?: number;
   friction: Friction;
   verification: Verification;
+  /** If set, this is a repeatable tally task. */
+  tally?: TallyConfig;
   /** Skip this template if user has any of these constraints. */
   excludeFor?: Constraint[];
   /** Boost selection weight if user has any of these (constraint-aware preference). */
@@ -189,6 +200,10 @@ export interface DailyTask {
   level: Level;
   friction: Friction;
   verification: Verification;
+  /** Snapshot of tally config from template (if any), so per-instance behaviour is stable. */
+  tally?: TallyConfig;
+  /** Current tally count for repeatable tasks. Undefined for non-tally tasks. */
+  tallyCount?: number;
   completed: boolean;
   completedAt?: string;
   skipped: boolean;

@@ -33,6 +33,8 @@ function HomeContent() {
     ensureTodayTasks,
     toggleTask,
     skipTask,
+    incrementTally,
+    addOneMoreTask,
     regenerateTodayTasks,
   } = useStore();
 
@@ -109,24 +111,36 @@ function HomeContent() {
               task={task}
               onToggle={toggleTask}
               onSkip={skipTask}
+              onIncrementTally={incrementTally}
             />
           ))
         )}
       </section>
 
       {tasks.length > 0 && (
-        <div className="flex justify-center pt-2">
+        <section className="flex flex-col gap-2 pt-1">
           <button
+            type="button"
+            onClick={() => {
+              const r = addOneMoreTask();
+              if (r === "none-left") alert("家族都已經在今天的清單裡了。");
+            }}
+            className="rounded-2xl border-2 border-dashed border-stone-300 px-4 py-3 text-sm text-stone-600 hover:border-emerald-400 hover:text-emerald-600 dark:border-stone-700 dark:text-stone-400 dark:hover:border-emerald-500"
+          >
+            + 加一個任務
+          </button>
+          <button
+            type="button"
             onClick={() => {
               if (confirm("要重新產生今天的任務嗎？已完成的進度會清空。")) {
                 regenerateTodayTasks();
               }
             }}
-            className="text-xs text-stone-500 underline-offset-2 hover:underline dark:text-stone-400"
+            className="self-center text-xs text-stone-500 underline-offset-2 hover:underline dark:text-stone-400"
           >
             重新產生今天的任務
           </button>
-        </div>
+        </section>
       )}
     </div>
   );

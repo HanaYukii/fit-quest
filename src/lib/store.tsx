@@ -20,7 +20,7 @@ import {
   UserProfile,
 } from "./types";
 import { loadState, saveState } from "./storage";
-import { generateDailyTasks } from "./tasks/generator";
+import { generateDailyTasks, pickAdditionalTask } from "./tasks/generator";
 import { findNewlyUnlocked } from "./achievements/engine";
 import { todayISO } from "./date";
 import { ACHIEVEMENTS } from "./achievements/definitions";
@@ -36,6 +36,8 @@ interface StoreContextValue {
   setProfile: (profile: UserProfile) => void;
   toggleTask: (instanceId: string) => void;
   skipTask: (instanceId: string) => void;
+  incrementTally: (instanceId: string, delta?: number) => void;
+  addOneMoreTask: () => "ok" | "none-left" | "no-profile";
   saveJournal: (date: string, entry: Partial<JournalEntry>) => void;
   ensureTodayTasks: () => void;
   regenerateTodayTasks: () => void;
@@ -184,6 +186,65 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [update]
   );
 
+  const incrementTally = useCallback(
+    (instanceId: string, delta: number = 1) => {
+      update((prev) => {
+        const history = prev.history.map((day) => {
+          if (!day.tasks.some((t) => t.instanceId === instanceId)) return day;
+          return {
+            ...day,
+            tasks: day.tasks.map((t) => {
+              if (t.instanceId !== instanceId) return t;
+              if (!t.tally) return t;
+              const next = Math.max(0, (t.tallyCount ?? 0) + delta);
+              const target = t.tally.target;
+              const completed = next >= target;
+              return {
+                ...t,
+                tallyCount: next,
+                completed,
+                completedAt:
+                  completed && !t.completed
+                    ? new Date().toISOString()
+                    : completed
+                      ? t.completedAt
+                      : undefined,
+                skipped: false,
+                skippedAt: undefined,
+              };
+            }),
+          };
+        });
+        return { ...prev, history };
+      });
+    },
+    [update]
+  );
+
+  const addOneMoreTask = useCallback((): "ok" | "none-left" | "no-profile" => {
+    let result: "ok" | "none-left" | "no-profile" = "ok";
+    update((prev) => {
+      if (!prev.profile) {
+        result = "no-profile";
+        return prev;
+      }
+      const today = todayISO();
+      const todayRec = prev.history.find((d) => d.date === today);
+      const existing = todayRec?.tasks ?? [];
+      const newTask = pickAdditionalTask(prev.profile, prev.history, existing);
+      if (!newTask) {
+        result = "none-left";
+        return prev;
+      }
+      const otherDays = prev.history.filter((d) => d.date !== today);
+      const updatedRecord: DailyRecord = todayRec
+        ? { ...todayRec, tasks: [...existing, newTask] }
+        : { date: today, tasks: [newTask] };
+      return { ...prev, history: [...otherDays, updatedRecord] };
+    });
+    return result;
+  }, [update]);
+
   const skipTask = useCallback(
     (instanceId: string) => {
       update((prev) => {
@@ -261,6 +322,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProfile,
     toggleTask,
     skipTask,
+    incrementTally,
+    addOneMoreTask,
     saveJournal,
     ensureTodayTasks,
     regenerateTodayTasks,

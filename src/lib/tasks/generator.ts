@@ -87,6 +87,8 @@ function materialize(template: TaskTemplate, profile: UserProfile): DailyTask {
     level: template.level,
     friction: template.friction,
     verification: template.verification,
+    tally: template.tally,
+    tallyCount: template.tally ? 0 : undefined,
     completed: false,
     skipped: false,
   };
@@ -151,6 +153,37 @@ export function generateDailyTasks(
   }
 
   return out;
+}
+
+/**
+ * Pick one additional task that's NOT in the existing list — used by the
+ * "加一個任務" refresh button on the home page. Prefers a family from a pillar
+ * not yet represented today, falls back to any unused family.
+ */
+export function pickAdditionalTask(
+  profile: UserProfile,
+  history: DailyRecord[],
+  existing: DailyTask[]
+): DailyTask | null {
+  const pool = filterForProfile(TASK_LIBRARY, profile);
+  const usedFamilies = new Set(existing.map((t) => t.family));
+  const remainingFamilies = Array.from(
+    new Set(pool.map((t) => t.family).filter((f) => !usedFamilies.has(f)))
+  );
+  if (remainingFamilies.length === 0) return null;
+
+  const usedPillars = new Set(existing.map((t) => t.pillar));
+  const preferred = remainingFamilies.filter(
+    (f) => !usedPillars.has(FAMILY_PILLAR[f])
+  );
+  const candidateFamilies = preferred.length > 0 ? preferred : remainingFamilies;
+  const family = pickRandom(candidateFamilies);
+  if (!family) return null;
+
+  const level = computeFamilyLevel(history, family);
+  const template = pickTemplateForFamily(family, level, pool);
+  if (!template) return null;
+  return materialize(template, profile);
 }
 
 // Re-export for backward references that may import from generator
