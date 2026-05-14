@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { SCENARIOS, Scenario } from "@/lib/scenarios";
 import { HEALTH_CONCEPTS, HealthConcept } from "@/lib/concepts";
+import { BAD_FOODS, GOOD_FOODS, FoodGroup } from "@/lib/foods";
 
-type Tab = "scenarios" | "concepts";
+type Tab = "scenarios" | "concepts" | "foods";
 
 export default function ScenariosPage() {
   const [tab, setTab] = useState<Tab>("scenarios");
@@ -21,39 +22,27 @@ export default function ScenariosPage() {
         </p>
       </header>
 
-      <div className="flex gap-2 rounded-full border border-stone-200 bg-stone-50 p-1 dark:border-stone-800 dark:bg-stone-900">
-        <button
-          type="button"
-          onClick={() => setTab("scenarios")}
-          className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
-            tab === "scenarios"
-              ? "bg-white text-stone-900 shadow-sm dark:bg-stone-700 dark:text-stone-100"
-              : "text-stone-500 dark:text-stone-400"
-          }`}
-        >
-          🎯 場景指南
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("concepts")}
-          className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
-            tab === "concepts"
-              ? "bg-white text-stone-900 shadow-sm dark:bg-stone-700 dark:text-stone-100"
-              : "text-stone-500 dark:text-stone-400"
-          }`}
-        >
-          💡 健康觀念
-        </button>
+      <div className="flex gap-1 rounded-full border border-stone-200 bg-stone-50 p-1 dark:border-stone-800 dark:bg-stone-900">
+        <TabButton current={tab} value="scenarios" onClick={setTab}>
+          🎯 場景
+        </TabButton>
+        <TabButton current={tab} value="concepts" onClick={setTab}>
+          💡 觀念
+        </TabButton>
+        <TabButton current={tab} value="foods" onClick={setTab}>
+          🥗 食物
+        </TabButton>
       </div>
 
-      {tab === "scenarios" ? (
+      {tab === "scenarios" && (
         <ScenariosSection
           open={openScenario}
           onToggle={(id) =>
             setOpenScenario((prev) => (prev === id ? null : id))
           }
         />
-      ) : (
+      )}
+      {tab === "concepts" && (
         <ConceptsSection
           open={openConcept}
           onToggle={(id) =>
@@ -61,20 +50,26 @@ export default function ScenariosPage() {
           }
         />
       )}
+      {tab === "foods" && <FoodsSection />}
 
-      <div className="mt-2 rounded-2xl border border-dashed border-stone-300 p-4 text-sm dark:border-stone-700">
+      <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-dashed border-stone-300 p-4 text-sm dark:border-stone-700">
         <p className="font-medium text-stone-700 dark:text-stone-300">
-          想要更精準的建議？
+          不知道吃什麼？
         </p>
-        <p className="mt-1 text-stone-600 dark:text-stone-400">
-          設定好 AI 教練後，可以丟具體場景跟預算，拿到個人化的排序選項。
-        </p>
-        <Link
-          href="/coach"
-          className="mt-3 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white"
-        >
-          🤖 去問教練
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/meals"
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white"
+          >
+            🍽️ 看一餐推薦
+          </Link>
+          <Link
+            href="/coach"
+            className="inline-flex items-center gap-1 rounded-full border border-stone-300 bg-white px-4 py-1.5 text-sm font-semibold text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+          >
+            🤖 問 AI 教練
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -322,5 +317,96 @@ function ListRow({ name, note }: { name: string; note?: string }) {
         </div>
       )}
     </li>
+  );
+}
+
+function TabButton({
+  current,
+  value,
+  onClick,
+  children,
+}: {
+  current: Tab;
+  value: Tab;
+  onClick: (t: Tab) => void;
+  children: React.ReactNode;
+}) {
+  const active = current === value;
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(value)}
+      className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
+        active
+          ? "bg-white text-stone-900 shadow-sm dark:bg-stone-700 dark:text-stone-100"
+          : "text-stone-500 dark:text-stone-400"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FoodsSection() {
+  const [side, setSide] = useState<"good" | "bad">("good");
+  const groups = side === "good" ? GOOD_FOODS : BAD_FOODS;
+  return (
+    <>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setSide("good")}
+          className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition ${
+            side === "good"
+              ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+              : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
+          }`}
+        >
+          🟢 好食物
+        </button>
+        <button
+          type="button"
+          onClick={() => setSide("bad")}
+          className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition ${
+            side === "bad"
+              ? "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
+              : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
+          }`}
+        >
+          🔴 壞食物
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {groups.map((g) => (
+          <FoodGroupCard key={g.category} group={g} tone={side} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function FoodGroupCard({ group, tone }: { group: FoodGroup; tone: "good" | "bad" }) {
+  return (
+    <article className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-stone-800 dark:text-stone-200">
+        <span className="text-lg">{group.emoji}</span>
+        <span>{group.category}</span>
+        <span
+          className={`ml-auto rounded-full px-2 py-0.5 text-[11px] font-medium ${
+            tone === "good"
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+          }`}
+        >
+          {tone === "good" ? "多吃" : "少吃 / 避開"}
+        </span>
+      </h2>
+      <ul className="mt-3 space-y-2">
+        {group.items.map((it, i) => (
+          <ListRow key={i} name={it.name} note={it.note} />
+        ))}
+      </ul>
+    </article>
   );
 }

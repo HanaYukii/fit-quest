@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { ProfileGate } from "@/components/ProfileGate";
 import { TaskItem } from "@/components/TaskItem";
@@ -160,6 +161,33 @@ function HomeContent() {
           </button>
         </section>
       )}
+
+      <section className="grid grid-cols-2 gap-2 pt-2">
+        <Link
+          href="/meals"
+          className="flex flex-col items-start gap-1 rounded-2xl border border-stone-200 bg-white p-3 transition hover:border-emerald-400 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-500"
+        >
+          <span className="text-xl">🍽️</span>
+          <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
+            今天吃什麼？
+          </span>
+          <span className="text-[11px] text-stone-500 dark:text-stone-400">
+            按餐次跟場景看搭配
+          </span>
+        </Link>
+        <Link
+          href="/scenarios"
+          className="flex flex-col items-start gap-1 rounded-2xl border border-stone-200 bg-white p-3 transition hover:border-emerald-400 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-emerald-500"
+        >
+          <span className="text-xl">📚</span>
+          <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
+            場景・觀念・食物
+          </span>
+          <span className="text-[11px] text-stone-500 dark:text-stone-400">
+            隨手查現場該怎麼做
+          </span>
+        </Link>
+      </section>
     </div>
   );
 }
