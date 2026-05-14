@@ -8,6 +8,7 @@ import {
 
 interface Props {
   task: DailyTask;
+  pinned?: boolean;
   onToggle: (id: string) => void;
   onSkip: (id: string) => void;
   onIncrementTally: (id: string, delta?: number) => void;
@@ -19,7 +20,7 @@ const FRICTION_DOTS = {
   high: 3,
 } as const;
 
-export function TaskItem({ task, onToggle, onSkip, onIncrementTally }: Props) {
+export function TaskItem({ task, pinned, onToggle, onSkip, onIncrementTally }: Props) {
   const state: "completed" | "skipped" | "pending" = task.completed
     ? "completed"
     : task.skipped
@@ -123,6 +124,14 @@ export function TaskItem({ task, onToggle, onSkip, onIncrementTally }: Props) {
             </p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
+            {pinned && (
+              <span
+                className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                title="每日固定（可在設定取消）"
+              >
+                📌 每日固定
+              </span>
+            )}
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${PILLAR_COLORS[task.pillar]}`}
             >

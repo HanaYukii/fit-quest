@@ -42,7 +42,24 @@ function HomeContent() {
     ensureTodayTasks();
   }, [ensureTodayTasks]);
 
-  const tasks = todayRecord?.tasks ?? [];
+  const pinnedSet = useMemo(
+    () => new Set(state.settings.pinnedFamilies ?? []),
+    [state.settings.pinnedFamilies]
+  );
+
+  const rawTasks = todayRecord?.tasks ?? [];
+  // Pinned families float to the top of the list. Array.sort is stable in
+  // modern engines so the relative order within each group is preserved.
+  const tasks = useMemo(
+    () =>
+      [...rawTasks].sort((a, b) => {
+        const ap = pinnedSet.has(a.family) ? 0 : 1;
+        const bp = pinnedSet.has(b.family) ? 0 : 1;
+        return ap - bp;
+      }),
+    [rawTasks, pinnedSet]
+  );
+
   const activeTasks = tasks.filter((t) => !t.skipped);
   const done = activeTasks.filter((t) => t.completed).length;
   const denominator = activeTasks.length;
@@ -109,6 +126,7 @@ function HomeContent() {
             <TaskItem
               key={task.instanceId}
               task={task}
+              pinned={pinnedSet.has(task.family)}
               onToggle={toggleTask}
               onSkip={skipTask}
               onIncrementTally={incrementTally}
