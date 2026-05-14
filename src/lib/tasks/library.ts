@@ -112,10 +112,9 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     level: 1,
     emoji: "🥤",
     title: "今天一杯含糖飲料改成無糖（無糖茶/水/氣泡水）",
-    description: "一杯手搖通常 30-50g 糖，等於 120-200 大卡。",
+    description: "一杯手搖通常 30-50g 糖，約 120-200 大卡。血糖控制中的人尤其有幫助。",
     friction: "low",
     verification: "self-report",
-    excludeFor: ["diabetic"],
   },
   {
     id: "drink-l2",
@@ -682,7 +681,7 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     level: 1,
     emoji: "☕",
     title: "下午 2 點之後不喝任何含咖啡因飲料（咖啡/茶/可樂）",
-    description: "咖啡因半衰期 5-6 小時，下午 2 點喝晚上 11 點還剩一半。",
+    description: "咖啡因半衰期約 5-6 小時，下午 2 點喝、晚上 11 點仍可能殘留約三分之一（個體差異大）。",
     friction: "low",
     verification: "self-report",
   },
@@ -782,6 +781,7 @@ export const TASK_LIBRARY: TaskTemplate[] = [
   // ═══════════════ BONUS ═══════════════
 
   // hydration（依體重動態計算，每杯約 250ml = 一般馬克杯）
+  // excludeFor: fluid-restriction — 腎臟病/透析/心衰竭等需依醫囑控制水量
   {
     id: "hydra-l1",
     family: "hydration",
@@ -789,10 +789,11 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     level: 1,
     emoji: "💧",
     title: "今天累積喝足基本量（30 ml/kg）",
-    description: "每杯約 250ml（一般馬克杯）。目標依你的體重自動算。",
+    description: "每杯約 250ml（一般馬克杯）。目標依你的體重自動算，是健康成人的粗估值。",
     friction: "low",
     verification: "count",
     tally: { unit: "杯", target: 8 },
+    excludeFor: ["fluid-restriction"],
     buildTitle: (p) => {
       const { cups, ml } = hydrationConfig(p, 1);
       return `今天累積喝 ${cups} 杯水（約 ${ml}ml）`;
@@ -810,6 +811,7 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     friction: "medium",
     verification: "count",
     tally: { unit: "杯", target: 10 },
+    excludeFor: ["fluid-restriction"],
     buildTitle: (p) => {
       const { cups, ml } = hydrationConfig(p, 2);
       return `今天累積喝 ${cups} 杯水（約 ${ml}ml）`;
@@ -827,6 +829,7 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     friction: "high",
     verification: "count",
     tally: { unit: "杯", target: 12 },
+    excludeFor: ["fluid-restriction"],
     buildTitle: (p) => {
       const { cups, ml } = hydrationConfig(p, 3);
       return `今天累積喝 ${cups} 杯水（約 ${ml}ml），避開含糖飲料`;

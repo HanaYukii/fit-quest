@@ -10,6 +10,7 @@ import {
   MealVenue,
   VENUE_LABELS,
 } from "@/lib/meals";
+import { useStore } from "@/lib/store";
 
 type MealFilter = MealType | "all";
 type VenueFilter = MealVenue | "all";
@@ -44,6 +45,11 @@ function currentMealTypeByHour(hour: number): MealFilter {
 }
 
 export default function MealsPage() {
+  const { state } = useStore();
+  const constraints = state.profile?.constraints ?? [];
+  const hasHypertension = constraints.includes("hypertension");
+  const isVegetarian = constraints.includes("vegetarian");
+
   const [mealType, setMealType] = useState<MealFilter>(() =>
     currentMealTypeByHour(new Date().getHours())
   );
@@ -69,9 +75,23 @@ export default function MealsPage() {
       <header>
         <h1 className="text-2xl font-bold">今天吃什麼？</h1>
         <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-          挑餐次跟場景，下面就是符合條件的搭配。每份含預估熱量跟蛋白質。
+          挑餐次跟場景，下面就是符合條件的搭配。
+        </p>
+        <p className="mt-1 text-[11px] text-stone-500 dark:text-stone-500">
+          ⓘ 熱量/蛋白質為粗估，常見誤差 ±20-30%；台灣外食份量差異大，看相對量比絕對值重要。
         </p>
       </header>
+
+      {hasHypertension && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+          🩺 你的個人檔案勾選了高血壓。下面有些組合（火鍋湯底、韓式泡菜、滷味醬汁、加工料、便當醬汁、味噌湯）鈉含量較高，建議：湯不喝、醬料減半、避免加工料、泡菜小菜不續。
+        </div>
+      )}
+      {isVegetarian && (
+        <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-3 text-xs leading-relaxed text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-200">
+          🌱 你的個人檔案勾選了素食。下面組合多包含肉類；可把蛋白質換成豆腐/豆漿/雞蛋/天貝/毛豆，或到「教練」客製純素版本。
+        </div>
+      )}
 
       <section>
         <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400">

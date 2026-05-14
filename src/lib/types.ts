@@ -125,7 +125,8 @@ export type Constraint =
   | "vegetarian"
   | "no-equipment"
   | "small-space"
-  | "late-sleeper";
+  | "late-sleeper"
+  | "fluid-restriction";
 
 export const CONSTRAINT_LABELS: Record<Constraint, string> = {
   "knee-issue": "膝蓋不舒服（避免跳躍/高衝擊）",
@@ -136,6 +137,7 @@ export const CONSTRAINT_LABELS: Record<Constraint, string> = {
   "no-equipment": "沒運動器材",
   "small-space": "居家空間小",
   "late-sleeper": "容易晚睡（建議用「比平常早」的時點）",
+  "fluid-restriction": "醫囑限水（腎臟病/透析/心衰竭等，水量需依醫療人員指示）",
 };
 
 // ───────────────────────── Profile ─────────────────────────
