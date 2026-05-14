@@ -1,4 +1,23 @@
-import { TaskTemplate, UserProfile } from "../types";
+import { Level, TaskTemplate, UserProfile } from "../types";
+
+// ── Hydration: weight-scaled targets so heavier bodies see realistic numbers.
+//    L1 = 30 ml/kg (general recommendation),
+//    L2 = 35 ml/kg,
+//    L3 = 40 ml/kg.
+//    1 cup ≈ 250ml (standard mug). Minimum floor of 4 cups for very light bodies.
+const HYDRATION_ML_PER_KG: Record<Level, number> = { 1: 30, 2: 35, 3: 40 };
+const HYDRATION_CUP_ML = 250;
+
+function hydrationConfig(
+  profile: UserProfile,
+  level: Level
+): { cups: number; ml: number } {
+  const weight = profile.currentWeightKg ?? profile.startWeightKg ?? 70;
+  const rawMl = weight * HYDRATION_ML_PER_KG[level];
+  const ml = Math.round(rawMl / 50) * 50; // round to nearest 50ml
+  const cups = Math.max(4, Math.round(ml / HYDRATION_CUP_ML));
+  return { cups, ml };
+}
 
 function shiftTimeEarlier(hhmm: string, minutes: number): string {
   if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return hhmm;
@@ -762,18 +781,23 @@ export const TASK_LIBRARY: TaskTemplate[] = [
 
   // ═══════════════ BONUS ═══════════════
 
-  // hydration（計次任務：每杯 ~200ml）
+  // hydration（依體重動態計算，每杯約 250ml = 一般馬克杯）
   {
     id: "hydra-l1",
     family: "hydration",
     pillar: "bonus",
     level: 1,
     emoji: "💧",
-    title: "今天累積喝 6 杯水",
-    description: "每杯約 200ml，看到水壺就 +1。",
+    title: "今天累積喝足基本量（30 ml/kg）",
+    description: "每杯約 250ml（一般馬克杯）。目標依你的體重自動算。",
     friction: "low",
     verification: "count",
-    tally: { unit: "杯", target: 6 },
+    tally: { unit: "杯", target: 8 },
+    buildTitle: (p) => {
+      const { cups, ml } = hydrationConfig(p, 1);
+      return `今天累積喝 ${cups} 杯水（約 ${ml}ml）`;
+    },
+    buildTally: (p) => ({ unit: "杯", target: hydrationConfig(p, 1).cups }),
   },
   {
     id: "hydra-l2",
@@ -781,10 +805,16 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     pillar: "bonus",
     level: 2,
     emoji: "💧",
-    title: "今天累積喝 8 杯水",
+    title: "今天累積喝高一階水量（35 ml/kg）",
+    description: "每杯約 250ml。比 L1 多 ~15%，適合活動量大的日子。",
     friction: "medium",
     verification: "count",
-    tally: { unit: "杯", target: 8 },
+    tally: { unit: "杯", target: 10 },
+    buildTitle: (p) => {
+      const { cups, ml } = hydrationConfig(p, 2);
+      return `今天累積喝 ${cups} 杯水（約 ${ml}ml）`;
+    },
+    buildTally: (p) => ({ unit: "杯", target: hydrationConfig(p, 2).cups }),
   },
   {
     id: "hydra-l3",
@@ -792,10 +822,16 @@ export const TASK_LIBRARY: TaskTemplate[] = [
     pillar: "bonus",
     level: 3,
     emoji: "💧",
-    title: "今天累積喝 10 杯水（避開含糖飲料）",
+    title: "今天累積喝充足水量（40 ml/kg）+ 避開含糖飲料",
+    description: "每杯約 250ml。L3 是高目標，搭配運動日或夏天更合適。",
     friction: "high",
     verification: "count",
-    tally: { unit: "杯", target: 10 },
+    tally: { unit: "杯", target: 12 },
+    buildTitle: (p) => {
+      const { cups, ml } = hydrationConfig(p, 3);
+      return `今天累積喝 ${cups} 杯水（約 ${ml}ml），避開含糖飲料`;
+    },
+    buildTally: (p) => ({ unit: "杯", target: hydrationConfig(p, 3).cups }),
   },
 
   // environment-prep

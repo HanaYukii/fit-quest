@@ -180,6 +180,8 @@ export interface TaskTemplate {
   verification: Verification;
   /** If set, this is a repeatable tally task. */
   tally?: TallyConfig;
+  /** Profile-driven tally (e.g., hydration scaled by body weight). Replaces `tally` when set. */
+  buildTally?: (profile: UserProfile) => TallyConfig;
   /** Skip this template if user has any of these constraints. */
   excludeFor?: Constraint[];
   /** Boost selection weight if user has any of these (constraint-aware preference). */

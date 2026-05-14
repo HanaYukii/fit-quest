@@ -76,6 +76,9 @@ function materialize(template: TaskTemplate, profile: UserProfile): DailyTask {
   const description = template.buildDescription
     ? template.buildDescription(profile)
     : template.description;
+  const tally = template.buildTally
+    ? template.buildTally(profile)
+    : template.tally;
   return {
     instanceId: `${template.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     templateId: template.id,
@@ -87,8 +90,8 @@ function materialize(template: TaskTemplate, profile: UserProfile): DailyTask {
     level: template.level,
     friction: template.friction,
     verification: template.verification,
-    tally: template.tally,
-    tallyCount: template.tally ? 0 : undefined,
+    tally,
+    tallyCount: tally ? 0 : undefined,
     completed: false,
     skipped: false,
   };
