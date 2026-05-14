@@ -9,6 +9,13 @@ import {
   importStateFromJSON,
   saveState,
 } from "@/lib/storage";
+import {
+  FAMILY_LABELS,
+  FAMILY_PILLAR,
+  Family,
+  PILLARS,
+  PILLAR_LABELS,
+} from "@/lib/types";
 
 export default function SettingsPage() {
   const { state, updateSettings, resetAll } = useStore();
@@ -54,6 +61,21 @@ export default function SettingsPage() {
   function setTaskCount(n: 3 | 4 | 5) {
     updateSettings({ taskCount: n });
   }
+
+  function togglePinned(family: Family) {
+    const current = state.settings.pinnedFamilies ?? [];
+    const next = current.includes(family)
+      ? current.filter((f) => f !== family)
+      : [...current, family];
+    updateSettings({ pinnedFamilies: next });
+  }
+
+  const familiesByPillar = PILLARS.map((pillar) => ({
+    pillar,
+    families: (Object.keys(FAMILY_LABELS) as Family[]).filter(
+      (f) => FAMILY_PILLAR[f] === pillar
+    ),
+  }));
 
   function handleExport() {
     const json = exportStateAsJSON(state);
@@ -142,6 +164,47 @@ export default function SettingsPage() {
           <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
             執行率低時系統會自動降到 3 個，執行率高時會自動增加。
           </p>
+        </div>
+      </Section>
+
+      <Section title="每日固定家族（釘住）">
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
+            釘住的家族每天都會出現，不佔輪換配額。例：釘「補水」就每天都會看到喝水任務。
+            修改隔天起套用；今天想要立刻看到，去首頁按「加一個任務」。
+          </p>
+          <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+            目前釘住 {(state.settings.pinnedFamilies ?? []).length} 個家族
+          </p>
+          <div className="mt-3 flex flex-col gap-4">
+            {familiesByPillar.map(({ pillar, families }) => (
+              <div key={pillar}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                  {PILLAR_LABELS[pillar]}
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {families.map((f) => {
+                    const pinned = (state.settings.pinnedFamilies ?? []).includes(f);
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => togglePinned(f)}
+                        className={`rounded-full border px-3 py-1 text-xs transition ${
+                          pinned
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+                            : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
+                        }`}
+                      >
+                        {pinned && "📌 "}
+                        {FAMILY_LABELS[f]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 

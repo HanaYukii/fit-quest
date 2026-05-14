@@ -256,6 +256,8 @@ export interface AppSettings {
   reminderTimes: string[];
   taskCount: 3 | 4 | 5;
   theme: "auto" | "light" | "dark";
+  /** Families that should appear in the daily list every day, on top of the rotating quota. */
+  pinnedFamilies: Family[];
   /** Optional: user-provided Gemini API key for the in-app coach. Stored in localStorage. */
   geminiKey?: string;
 }
@@ -273,6 +275,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   reminderTimes: ["09:00", "13:00", "19:00", "22:30"],
   taskCount: 4,
   theme: "auto",
+  pinnedFamilies: ["hydration"],
 };
 
 export const DEFAULT_STATE: AppState = {

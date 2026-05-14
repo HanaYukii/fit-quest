@@ -20,7 +20,11 @@ import {
   UserProfile,
 } from "./types";
 import { loadState, saveState } from "./storage";
-import { generateDailyTasks, pickAdditionalTask } from "./tasks/generator";
+import {
+  generateDailyTasks,
+  pickAdditionalTask,
+  pickMissingPinnedTasks,
+} from "./tasks/generator";
 import { findNewlyUnlocked } from "./achievements/engine";
 import { todayISO } from "./date";
 import { ACHIEVEMENTS } from "./achievements/definitions";
@@ -130,10 +134,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     update((prev) => {
       if (!prev.profile) return prev;
       const existing = prev.history.find((d) => d.date === today);
-      if (existing && existing.tasks.length > 0) return prev;
+      const pinned = prev.settings.pinnedFamilies ?? [];
+
+      if (existing && existing.tasks.length > 0) {
+        // Backfill any pinned families that aren't represented yet today —
+        // catches the case where the user pinned a family after today's
+        // tasks were already generated.
+        const missingPinned = pickMissingPinnedTasks(
+          prev.profile,
+          prev.history,
+          existing.tasks,
+          pinned
+        );
+        if (missingPinned.length === 0) return prev;
+        const otherDays = prev.history.filter((d) => d.date !== today);
+        return {
+          ...prev,
+          history: [
+            ...otherDays,
+            { ...existing, tasks: [...existing.tasks, ...missingPinned] },
+          ],
+        };
+      }
 
       const tasks = generateDailyTasks(prev.profile, prev.history, prev.settings);
-
       const otherDays = prev.history.filter((d) => d.date !== today);
       const newRecord: DailyRecord = {
         date: today,

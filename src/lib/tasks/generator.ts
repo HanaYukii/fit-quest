@@ -111,8 +111,22 @@ export function generateDailyTasks(
   settings: AppSettings
 ): DailyTask[] {
   const pool = filterForProfile(TASK_LIBRARY, profile);
+  const pinned = settings.pinnedFamilies ?? [];
 
-  // Decide count from execution rate (only after we have real signal)
+  const out: DailyTask[] = [];
+  const picked = new Set<Family>();
+
+  // 1) Pinned families always come first and don't count against the rotating quota.
+  for (const family of pinned) {
+    const level = computeFamilyLevel(history, family);
+    const tmpl = pickTemplateForFamily(family, level, pool);
+    if (tmpl) {
+      out.push(materialize(tmpl, profile));
+      picked.add(family);
+    }
+  }
+
+  // 2) Decide rotating count from execution rate (only after we have real signal).
   let count: 3 | 4 | 5 = settings.taskCount;
   const hasEnoughHistory = history.some((d) => d.tasks.length > 0);
   if (hasEnoughHistory) {
@@ -124,10 +138,10 @@ export function generateDailyTasks(
 
   const slots = pillarSlots(count);
   const recent = recentlyUsedFamilies(history, 2);
-  const picked = new Set<Family>();
-  const out: DailyTask[] = [];
+  const rotatingTargetLength = out.length + count;
 
   for (const pillar of slots) {
+    if (out.length >= rotatingTargetLength) break;
     const family = pickFamilyForPillar(pillar, pool, recent, picked);
     if (!family) continue;
     picked.add(family);
@@ -137,9 +151,7 @@ export function generateDailyTasks(
     out.push(materialize(tmpl, profile));
   }
 
-  // If something fell through (e.g., very restrictive profile), top up with
-  // any remaining family in any pillar.
-  while (out.length < count) {
+  while (out.length < rotatingTargetLength) {
     const remaining = Array.from(
       new Set(pool.map((t) => t.family).filter((f) => !picked.has(f)))
     );
@@ -152,6 +164,32 @@ export function generateDailyTasks(
     out.push(materialize(tmpl, profile));
   }
 
+  return out;
+}
+
+/**
+ * If the user pinned a family AFTER today's tasks were already generated,
+ * `ensureTodayTasks` calls this to backfill — appends the missing pinned
+ * families to today's list without disturbing existing progress.
+ */
+export function pickMissingPinnedTasks(
+  profile: UserProfile,
+  history: DailyRecord[],
+  existing: DailyTask[],
+  pinned: Family[]
+): DailyTask[] {
+  if (pinned.length === 0) return [];
+  const presentFamilies = new Set(existing.map((t) => t.family));
+  const missing = pinned.filter((f) => !presentFamilies.has(f));
+  if (missing.length === 0) return [];
+
+  const pool = filterForProfile(TASK_LIBRARY, profile);
+  const out: DailyTask[] = [];
+  for (const family of missing) {
+    const level = computeFamilyLevel(history, family);
+    const tmpl = pickTemplateForFamily(family, level, pool);
+    if (tmpl) out.push(materialize(tmpl, profile));
+  }
   return out;
 }
 
