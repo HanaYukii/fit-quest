@@ -255,7 +255,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const today = todayISO();
       const todayRec = prev.history.find((d) => d.date === today);
       const existing = todayRec?.tasks ?? [];
-      const newTask = pickAdditionalTask(prev.profile, prev.history, existing);
+      const newTask = pickAdditionalTask(
+        prev.profile,
+        prev.history,
+        existing,
+        prev.settings.blockedFamilies ?? []
+      );
       if (!newTask) {
         result = "none-left";
         return prev;

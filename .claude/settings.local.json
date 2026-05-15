@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Skill(update-config)",
+      "Skill(update-config:*)"
+    ]
+  },
+  "skipDangerousModePermissionPrompt": true
+}

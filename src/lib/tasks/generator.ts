@@ -19,9 +19,12 @@ function pickRandom<T>(arr: T[]): T | undefined {
 
 function filterForProfile(
   templates: TaskTemplate[],
-  profile: UserProfile
+  profile: UserProfile,
+  blockedFamilies: Family[] = []
 ): TaskTemplate[] {
+  const blocked = new Set(blockedFamilies);
   return templates.filter((t) => {
+    if (blocked.has(t.family)) return false;
     if (!t.excludeFor) return true;
     return !t.excludeFor.some((c) => profile.constraints.includes(c));
   });
@@ -113,7 +116,11 @@ export function generateDailyTasks(
   history: DailyRecord[],
   settings: AppSettings
 ): DailyTask[] {
-  const pool = filterForProfile(TASK_LIBRARY, profile);
+  const pool = filterForProfile(
+    TASK_LIBRARY,
+    profile,
+    settings.blockedFamilies ?? []
+  );
   const pinned = settings.pinnedFamilies ?? [];
 
   const out: DailyTask[] = [];
@@ -186,6 +193,7 @@ export function pickMissingPinnedTasks(
   const missing = pinned.filter((f) => !presentFamilies.has(f));
   if (missing.length === 0) return [];
 
+  // Pinned families bypass the blocked-list filter — explicit user intent.
   const pool = filterForProfile(TASK_LIBRARY, profile);
   const out: DailyTask[] = [];
   for (const family of missing) {
@@ -204,9 +212,10 @@ export function pickMissingPinnedTasks(
 export function pickAdditionalTask(
   profile: UserProfile,
   history: DailyRecord[],
-  existing: DailyTask[]
+  existing: DailyTask[],
+  blockedFamilies: Family[] = []
 ): DailyTask | null {
-  const pool = filterForProfile(TASK_LIBRARY, profile);
+  const pool = filterForProfile(TASK_LIBRARY, profile, blockedFamilies);
   const usedFamilies = new Set(existing.map((t) => t.family));
   const remainingFamilies = Array.from(
     new Set(pool.map((t) => t.family).filter((f) => !usedFamilies.has(f)))

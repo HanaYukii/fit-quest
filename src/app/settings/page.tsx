@@ -63,11 +63,37 @@ export default function SettingsPage() {
   }
 
   function togglePinned(family: Family) {
-    const current = state.settings.pinnedFamilies ?? [];
-    const next = current.includes(family)
-      ? current.filter((f) => f !== family)
-      : [...current, family];
-    updateSettings({ pinnedFamilies: next });
+    const pinned = state.settings.pinnedFamilies ?? [];
+    const blocked = state.settings.blockedFamilies ?? [];
+    const isPinned = pinned.includes(family);
+    const nextPinned = isPinned
+      ? pinned.filter((f) => f !== family)
+      : [...pinned, family];
+    // Pinning a blocked family auto-unblocks it.
+    const patch: { pinnedFamilies: Family[]; blockedFamilies?: Family[] } = {
+      pinnedFamilies: nextPinned,
+    };
+    if (!isPinned && blocked.includes(family)) {
+      patch.blockedFamilies = blocked.filter((f) => f !== family);
+    }
+    updateSettings(patch);
+  }
+
+  function toggleBlocked(family: Family) {
+    const pinned = state.settings.pinnedFamilies ?? [];
+    const blocked = state.settings.blockedFamilies ?? [];
+    const isBlocked = blocked.includes(family);
+    const nextBlocked = isBlocked
+      ? blocked.filter((f) => f !== family)
+      : [...blocked, family];
+    // Blocking a pinned family auto-unpins it.
+    const patch: { blockedFamilies: Family[]; pinnedFamilies?: Family[] } = {
+      blockedFamilies: nextBlocked,
+    };
+    if (!isBlocked && pinned.includes(family)) {
+      patch.pinnedFamilies = pinned.filter((f) => f !== family);
+    }
+    updateSettings(patch);
   }
 
   const familiesByPillar = PILLARS.map((pillar) => ({
@@ -185,6 +211,7 @@ export default function SettingsPage() {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {families.map((f) => {
                     const pinned = (state.settings.pinnedFamilies ?? []).includes(f);
+                    const blocked = (state.settings.blockedFamilies ?? []).includes(f);
                     return (
                       <button
                         key={f}
@@ -193,11 +220,59 @@ export default function SettingsPage() {
                         className={`rounded-full border px-3 py-1 text-xs transition ${
                           pinned
                             ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
-                            : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
+                            : blocked
+                              ? "border-stone-200 bg-stone-50 text-stone-400 line-through dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-600"
+                              : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
                         }`}
                       >
                         {pinned && "📌 "}
                         {FAMILY_LABELS[f]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="不想看到的家族（排除）">
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
+            勾起來的家族不會被選進每日任務。例：本來就不太吃零食 → 排除「節制零食」；不喝咖啡 → 排除「咖啡因截止」。
+            修改隔天起套用。
+          </p>
+          <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+            目前排除 {(state.settings.blockedFamilies ?? []).length} 個家族
+          </p>
+          <div className="mt-3 flex flex-col gap-4">
+            {familiesByPillar.map(({ pillar, families }) => (
+              <div key={pillar}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+                  {PILLAR_LABELS[pillar]}
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {families.map((f) => {
+                    const pinned = (state.settings.pinnedFamilies ?? []).includes(f);
+                    const blocked = (state.settings.blockedFamilies ?? []).includes(f);
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => toggleBlocked(f)}
+                        className={`rounded-full border px-3 py-1 text-xs transition ${
+                          blocked
+                            ? "border-rose-400 bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
+                            : pinned
+                              ? "border-stone-200 bg-stone-50 text-stone-400 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-600"
+                              : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
+                        }`}
+                        title={pinned ? "目前釘住中，點下會自動取消釘住" : ""}
+                      >
+                        {blocked && "🚫 "}
+                        {FAMILY_LABELS[f]}
+                        {pinned && !blocked && " 📌"}
                       </button>
                     );
                   })}
